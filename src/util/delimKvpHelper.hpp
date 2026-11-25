@@ -31,8 +31,14 @@ Between the KVPs are semicolons.
 At the end there may be a semicolon, and there will be a null char to terminate
 the entire string.
 
+A value wrapped in braces may contain ';' and '='; the braces are removed and
+"}}" inside them stands for a literal '}'. Anything between the closing brace
+and the next ';' is ignored. An unterminated '{' is taken literally up to the
+next ';'. Segments without '=' are skipped.
+
 ex 1: hello=world;foo=bar;
 ex 2: hello=world;foo=bar
+ex 3: UID=alice;PWD={pa;ss}}word}  ->  uid=alice, pwd=pa;ss}word
 
 This is the format used by connection strings passed into SQLDriverConnect.
 */

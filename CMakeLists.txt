@@ -158,6 +158,7 @@ add_executable(TestDriver
     "test/unit/auth/basicAuthTest.cpp"
     "test/unit/util/base64decoderTest.cpp"
     "test/unit/util/cryptUtilsTest.cpp"
+    "test/unit/util/delimKvpHelperTest.cpp"
     "test/unit/util/dateAndTimeUtilsTest.cpp"
     "test/unit/util/randomStrTest.cpp"
     "test/unit/util/stringTrimTest.cpp"

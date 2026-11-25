@@ -125,12 +125,68 @@ parseKVPsFromDelimStr(const std::string& kvpStr,
 
 std::map<std::string, std::string>
 parseKVPsFromSemicolonDelimStr(const std::string& kvpStr) {
-  char delimiter          = ';';
-  bool lowercaseKeys      = true;
-  bool trimKeysWhitespace = true;
-  bool stripDoubleQuotes  = false;
-  return parseKVPsFromDelimStr(
-      kvpStr, delimiter, lowercaseKeys, trimKeysWhitespace, stripDoubleQuotes);
+  std::map<std::string, std::string> kvps;
+  size_t pos = 0;
+
+  while (pos < kvpStr.size()) {
+    size_t separator = kvpStr.find_first_of("=;", pos);
+    if (separator == std::string::npos) {
+      break;
+    }
+    if (kvpStr[separator] == ';') {
+      // A segment without '=' carries no attribute; skip it.
+      pos = separator + 1;
+      continue;
+    }
+
+    std::string key = kvpStr.substr(pos, separator - pos);
+    trim(key);
+    key = toLowercase(key);
+
+    size_t valueStart = separator + 1;
+    std::string value;
+    bool braced = false;
+
+    if (valueStart < kvpStr.size() and kvpStr[valueStart] == '{') {
+      // Inside braces ';' and '=' are literal and "}}" is an escaped '}'.
+      std::string bracedValue;
+      size_t i = valueStart + 1;
+      while (i < kvpStr.size()) {
+        if (kvpStr[i] == '}') {
+          if (i + 1 < kvpStr.size() and kvpStr[i + 1] == '}') {
+            bracedValue += '}';
+            i += 2;
+            continue;
+          }
+          braced = true;
+          break;
+        }
+        bracedValue += kvpStr[i];
+        i++;
+      }
+      if (braced) {
+        value       = bracedValue;
+        size_t next = kvpStr.find(';', i + 1);
+        pos         = (next == std::string::npos) ? kvpStr.size() : next + 1;
+      }
+    }
+
+    if (!braced) {
+      // Unbraced, or an unterminated '{': the value runs to the next ';'.
+      size_t valueEnd = kvpStr.find(';', valueStart);
+      if (valueEnd == std::string::npos) {
+        valueEnd = kvpStr.size();
+      }
+      value = kvpStr.substr(valueStart, valueEnd - valueStart);
+      pos   = valueEnd + 1;
+    }
+
+    if (!key.empty()) {
+      kvps[key] = value;
+    }
+  }
+
+  return kvps;
 }
 
 std::map<std::string, std::string>
