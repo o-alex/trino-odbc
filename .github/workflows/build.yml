@@ -1,0 +1,84 @@
+name: Build and Unit Test
+
+on:
+  push:
+    branches-ignore:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check clang-format on files changed from main
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+          MODIFIED_FILES=$(git diff --name-only origin/main...HEAD -- '*.cpp' '*.hpp')
+          if [ -z "$MODIFIED_FILES" ]; then
+            echo "No .cpp or .hpp files were modified."
+            exit 0
+          fi
+          clang-format --dry-run --Werror $MODIFIED_FILES
+
+  build:
+    runs-on: windows-2022
+
+    env:
+      WIX_VERSION: "5.0.2"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Get CMake
+        uses: lukka/get-cmake@latest
+
+      - name: Run vcpkg
+        uses: lukka/run-vcpkg@v11
+
+      - name: Run CMake and build x64
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          cmake --preset x64-release
+          cmake --build --preset x64-release
+
+      # The rest of the TestDriver suite needs a live Trino server.
+      - name: Run unit tests
+        shell: cmd
+        run: |
+          out\build\x64-release\TestDriver.exe --gtest_filter=StringToBase64Test.*:BasicAuthTest.*:BasicAuthConfigTest.*:RedactSecretValuesTest.*:ConnStrParseTest.*:Base64urlDecoderTest.*:StringTrimTest.*:StringReplaceTest.*:CryptUtils*
+
+      - name: Add dotnet tool cli
+        uses: actions/setup-dotnet@v5
+
+      - name: Add WiX dotnet package
+        run: |
+          dotnet tool install --global wix --version ${{ env.WIX_VERSION }}
+
+      - name: Add WiX UI extension
+        run: |
+          wix extension add -g WixToolset.UI.wixext/${{ env.WIX_VERSION }}
+
+      - name: Build x64 installer
+        shell: pwsh
+        run: |
+          .\install\build_x64_installer.ps1
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-x64
+          if-no-files-found: error
+          path: |
+            install/TrinoODBC_x64.msi
