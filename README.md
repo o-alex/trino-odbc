@@ -12,8 +12,9 @@ This open-source project is a partially complete ODBC driver for the
 [Trino distributed SQL engine](https://trino.io/). It implements the
 essential portions of the ODBC core specification required to enable
 Microsoft Excel and Microsoft PowerBI Desktop to connect to and
-execute queries against a Trino server using either External
-Authentication or OIDC Client Credential flow.
+execute queries against a Trino server using External
+Authentication, OIDC Client Credential flow, or Basic Auth
+(username and password).
 The driver was developed to address a narrow gap in connectivity
 options for these tools on the Windows operating system within
 the Open Source Trino community.
@@ -53,7 +54,8 @@ Please see [our Contributing guide](./CONTRIBUTING.md) for more information.
 
 - Only compiled for Microsoft Windows
 - Only supports reading data, not writing/transacting data.
-- Does not support most forms of Trino authentication including password authentication
+- Supports only these forms of Trino authentication: External Authentication,
+  OIDC Client Credential flow, OIDC Device Flow and Basic Auth (password)
 - Does not support the ODBC wide-char unicode encoding (UCS-2 format, 16-bit characters)
 - Does not support Parameterized queries (SQLBindParameter, SQLParamData, SQLNumParams etc.)
 - Does not support ODBC conformance Level 1 or Level 2
@@ -73,6 +75,35 @@ features are required for Microsoft PowerBI Desktop or Microsoft Excel to
 use the driver to read data from Trino using Client Credential Auth or
 External Authentication.
 
+
+### Basic Auth (username and password)
+
+For a Trino coordinator with
+[password authentication](https://trino.io/docs/current/security/password-file.html)
+enabled. The driver sends `Authorization: Basic` and `X-Trino-User` with
+every request. Trino accepts passwords only over HTTPS, so the hostname must
+start with `https://`; the driver refuses to connect otherwise. The server
+certificate must chain to a CA in the Windows certificate store.
+
+In the DSN dialog, choose `Basic Auth` as the Auth Method and fill in
+Username and Password. The password is stored encrypted with DPAPI as
+`encryptedPassword`, never in plain text.
+
+In a connection string, the standard ODBC keys `UID` and `PWD` set the
+username and password and override the DSN's values. Empty `UID=` or `PWD=`
+values do not override them.
+
+```
+DSN=MyTrino;UID=alice;PWD=secret
+Hostname=https://trino.example.com;Port=443;AuthMethod=Basic Auth;UID=alice;PWD={pa;ss}}word}
+```
+
+A value containing `;` or `=` must be wrapped in braces, and a `}` inside
+braces is written as `}}`. The second example sends the password `pa;ss}word`.
+Credentials passed to `SQLConnect` override the DSN in the same way.
+
+Basic Auth is covered by unit tests only. It has not yet been tested with
+Excel or PowerBI.
 
 ### Identifying Specific Limitations
 
