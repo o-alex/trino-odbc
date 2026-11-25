@@ -147,8 +147,8 @@ LRESULT CALLBACK WINDOW_CB(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
           GetWindowText(oidcScopeItem, buf, BUF_LEN);
           driverConfigPtr->setOidcScope(std::string(buf));
 
-          // Username and password are only kept for Basic Auth, so that
-          // switching a DSN away from it does not leave a stored password.
+          // Username and password are only kept for Basic Auth; ConfigDSN
+          // deletes the stored keys when they are empty.
           if (driverConfigPtr->getAuthMethodEnum() == AM_BASIC_AUTH) {
             GetWindowText(usernameItem, buf, BUF_LEN);
             driverConfigPtr->setUsername(std::string(buf));
@@ -259,17 +259,17 @@ void DSNForm::ShowDSNForm() {
 
   WriteLog(LL_TRACE, "  Creating window");
   HWND form    = CreateWindowEx(WS_EX_CLIENTEDGE,
-                                className,
-                                "Enter DSN Information",
-                                WS_OVERLAPPED | WS_VISIBLE,
-                                CW_USEDEFAULT,
-                                CW_USEDEFAULT,
-                                625,
-                                450,
-                                this->parent,
-                                NULL,
-                                GetModuleHandle(NULL),
-                                &this->configResult);
+                             className,
+                             "Enter DSN Information",
+                             WS_OVERLAPPED | WS_VISIBLE,
+                             CW_USEDEFAULT,
+                             CW_USEDEFAULT,
+                             625,
+                             450,
+                             this->parent,
+                             NULL,
+                             GetModuleHandle(NULL),
+                             &this->configResult);
   bool visible = true;
   // FEATURE: actually hide the OIDC fields if the user doesn't select OIDC
   // auth. For now, they're just disabled but still visible.

@@ -118,6 +118,17 @@ BOOL APIENTRY ConfigDSN(HWND hwndParent,
     for (auto it = kvps.begin(); it != kvps.end(); it++) {
       writeToProfile(result, it->first, it->second);
     }
+    // driverConfigToKVPs omits empty values, so a cleared username or
+    // password would otherwise survive in ODBC.INI. A NULL value deletes the
+    // key.
+    std::string dsn = result.getDSN();
+    if (result.getUsername().empty()) {
+      SQLWritePrivateProfileString(dsn.c_str(), "username", NULL, "ODBC.INI");
+    }
+    if (result.getPassword().empty()) {
+      SQLWritePrivateProfileString(
+          dsn.c_str(), "encryptedPassword", NULL, "ODBC.INI");
+    }
     return true;
   } else {
     return false;

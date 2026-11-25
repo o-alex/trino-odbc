@@ -300,6 +300,11 @@ void TrinoQuery::post() {
                    std::to_string(httpStatusCode));
       throw std::runtime_error("No NextURI in Trino POST response");
     }
+  } else if (httpStatusCode == 401) {
+    WriteLog(LL_ERROR, "  Error POSTing query. Trino returned 401");
+    throw std::runtime_error(
+        "Trino rejected the credentials (HTTP 401). Check the auth method, "
+        "username and password.");
   } else {
     // If we get here, there was a problem posting the query.
     WriteLog(LL_ERROR,
