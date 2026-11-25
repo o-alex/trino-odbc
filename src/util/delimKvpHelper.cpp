@@ -154,3 +154,16 @@ encodeMapToCommaDelimString(const std::map<std::string, std::string>& map) {
   }
   return oss.str();
 }
+
+std::map<std::string, std::string>
+redactSecretValues(const std::map<std::string, std::string>& kvps) {
+  std::map<std::string, std::string> redacted = kvps;
+  for (auto& [key, value] : redacted) {
+    std::string lowerKey = toLowercase(key);
+    if (lowerKey == "pwd" or lowerKey == "password" or
+        lowerKey == "clientsecret") {
+      value = "***";
+    }
+  }
+  return redacted;
+}

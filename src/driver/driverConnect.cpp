@@ -33,11 +33,11 @@ SQLRETURN SQL_API SQLDriverConnect(SQLHDBC ConnectionHandle,
   WriteLog(LL_TRACE, "  Reading input connection string");
   std::string inputConnStr = stringFromChar(InConnectionChars, StringLength1);
 
-  WriteLog(LL_TRACE, "  Input connection string was: " + inputConnStr);
-
   WriteLog(LL_TRACE, "  Parsing input connection string");
   std::map<std::string, std::string> kvps =
       parseKVPsFromSemicolonDelimStr(inputConnStr);
+  WriteLog(LL_TRACE, "  Input connection string was: ");
+  WriteLog(LL_TRACE, redactSecretValues(kvps));
 
   if (kvps.count("dsn")) {
     WriteLog(LL_TRACE, "  An explicit DSN was provided to SQLDriverConnect");
@@ -57,7 +57,7 @@ SQLRETURN SQL_API SQLDriverConnect(SQLHDBC ConnectionHandle,
       }
     }
     WriteLog(LL_TRACE, "The final connection config was as follows");
-    WriteLog(LL_TRACE, kvps);
+    WriteLog(LL_TRACE, redactSecretValues(kvps));
   } else {
     WriteLog(LL_TRACE,
              "  An explicit DSN was not provided to SQLDriverConnect");

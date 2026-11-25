@@ -5,6 +5,7 @@
 #include <sqlext.h>
 
 #include <cstdint>
+#include <functional>
 #include <odbcinst.h>
 
 #include "../../util/cryptUtils.hpp"
@@ -42,21 +43,22 @@ DriverConfig readDriverConfigFromProfile(std::string dsn) {
   config.setOidcDiscoveryUrl(readFromPrivateProfile(dsn, "oidcDiscoveryUrl"));
   config.setClientId(readFromPrivateProfile(dsn, "clientId"));
   config.setOidcScope(readFromPrivateProfile(dsn, "oidcScope"));
+  config.setUsername(readFromPrivateProfile(dsn, "username"));
 
   std::string secretEncryptionLevel =
       readFromPrivateProfile(dsn, "secretEncryptionLevel");
-  std::string encryptedClientSecret =
-      readFromPrivateProfile(dsn, "encryptedClientSecret");
-
-  // Handle the encrypted data
+  std::function<std::string(const std::string&)> decrypt;
   if (secretEncryptionLevel == "user") {
-    config.setClientSecret(userDecryptString(encryptedClientSecret));
+    decrypt = userDecryptString;
   } else if (secretEncryptionLevel == "system") {
-    config.setClientSecret(systemDecryptString(encryptedClientSecret));
+    decrypt = systemDecryptString;
   } else {
     throw std::runtime_error("Unknown secret encryption level: " +
                              secretEncryptionLevel);
   }
+  config.setClientSecret(
+      decrypt(readFromPrivateProfile(dsn, "encryptedClientSecret")));
+  config.setPassword(decrypt(readFromPrivateProfile(dsn, "encryptedPassword")));
 
   return config;
 }

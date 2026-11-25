@@ -73,3 +73,13 @@ reverse of parseKVPsFromCommaDelimStr.
 */
 std::string
 encodeMapToCommaDelimString(const std::map<std::string, std::string>& map);
+
+// ASCII only.
+std::string toLowercase(std::string s);
+
+/*
+Return a copy of the map with the values of secret-bearing keys (password,
+pwd, clientSecret, any case) replaced by "***", for logging.
+*/
+std::map<std::string, std::string>
+redactSecretValues(const std::map<std::string, std::string>& kvps);

@@ -4,6 +4,7 @@
 #include "../util/callbackHelper.hpp"
 #include "../util/stringTrim.hpp"
 #include "../util/writeLog.hpp"
+#include "authProvider/basicAuthProvider.hpp"
 #include "authProvider/clientCredAuthProvider.hpp"
 #include "authProvider/deviceFlowAuthProvider.hpp"
 #include "authProvider/externalAuthProvider.hpp"
@@ -58,7 +59,9 @@ ConnectionConfig::ConnectionConfig(std::string hostname,
                                    std::string clientSecret,
                                    std::string oidcScope,
                                    std::string grantType,
-                                   std::string tokenEndpoint) {
+                                   std::string tokenEndpoint,
+                                   std::string username,
+                                   std::string password) {
 
   this->hostname       = hostname;
   this->port           = port;
@@ -103,6 +106,11 @@ ConnectionConfig::ConnectionConfig(std::string hostname,
                                                       clientId,
                                                       clientSecret,
                                                       oidcScope);
+      break;
+    }
+    case AM_BASIC_AUTH: {
+      this->authConfigPtr = getBasicAuthConfigPtr(
+          hostname, port, connectionName, username, password);
       break;
     }
 

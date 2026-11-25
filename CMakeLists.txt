@@ -29,6 +29,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 add_library(TrinoODBC SHARED
             "src/trinoAPIWrapper/authProvider/tokens/tokenCache.cpp"
             "src/trinoAPIWrapper/authProvider/tokens/tokenParser.cpp"
+            "src/trinoAPIWrapper/authProvider/basicAuthProvider.cpp"
             "src/trinoAPIWrapper/authProvider/clientCredAuthProvider.cpp"
             "src/trinoAPIWrapper/authProvider/externalAuthProvider.cpp"
             "src/trinoAPIWrapper/authProvider/noAuthProvider.cpp"
@@ -154,6 +155,7 @@ add_executable(TestDriver
     "test/preparedStatements/testPrepare.cpp"
     "test/types/fetchBindTest.cpp"
     "test/types/fetchGetDataTest.cpp"
+    "test/unit/auth/basicAuthTest.cpp"
     "test/unit/util/base64decoderTest.cpp"
     "test/unit/util/cryptUtilsTest.cpp"
     "test/unit/util/dateAndTimeUtilsTest.cpp"

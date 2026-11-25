@@ -32,8 +32,12 @@ bool isSystemDSN() {
 void writeToProfile(DriverConfig result,
                     std::string section,
                     std::string value) {
-  std::string dsn = result.getDSN();
-  if (section == "clientSecret") {
+  std::string dsn                                      = result.getDSN();
+  std::map<std::string, std::string> encryptedSections = {
+      {"clientSecret", "encryptedClientSecret"},
+      {"password", "encryptedPassword"},
+  };
+  if (encryptedSections.count(section)) {
     std::function<std::string(const std::string&)> encryptionFunc = nullptr;
     std::string encryptionLevel;
     if (isSystemDSN()) {
@@ -44,7 +48,7 @@ void writeToProfile(DriverConfig result,
       encryptionLevel = "user";
     }
     SQLWritePrivateProfileString(dsn.c_str(),
-                                 "encryptedClientSecret",
+                                 encryptedSections.at(section).c_str(),
                                  encryptionFunc(value).c_str(),
                                  "ODBC.INI");
     SQLWritePrivateProfileString(dsn.c_str(),
@@ -69,7 +73,7 @@ BOOL APIENTRY ConfigDSN(HWND hwndParent,
       parseKVPsFromNullDelimChars(lpszAttributes);
 
   WriteLog(LL_TRACE, "  lpszAttributes are: ");
-  WriteLog(LL_TRACE, attributes);
+  WriteLog(LL_TRACE, redactSecretValues(attributes));
 
   DSNForm form = DSNForm(hwndParent, attributes);
 

@@ -5,6 +5,9 @@
 
 HWND editMaker(HWND form, int vertOffset, int editId, bool visible);
 
+// Single-line edit that masks its contents.
+HWND passwordEditMaker(HWND form, int vertOffset, int editId, bool visible);
+
 std::string getEditText(HWND edit);
 
 void setEditText(HWND edit, std::string text);

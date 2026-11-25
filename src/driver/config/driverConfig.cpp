@@ -27,23 +27,31 @@ std::map<std::string, LogLevel> LOG_NAME_TO_LOG_LEVEL = {
     std::make_pair("None", LL_NONE),
 };
 
-std::vector<std::string> AUTH_METHOD_NAMES = {
-    "No Auth", "External Auth", "OIDC Client Cred Auth", "Device Flow"};
+std::vector<std::string> AUTH_METHOD_NAMES = {"No Auth",
+                                              "External Auth",
+                                              "OIDC Client Cred Auth",
+                                              "Device Flow",
+                                              "Basic Auth"};
 
-std::vector<ApiAuthMethod> AUTH_METHOD_VALUES = {
-    AM_NO_AUTH, AM_EXTERNAL_AUTH, AM_CLIENT_CRED_AUTH, AM_DEVICE_FLOW};
+std::vector<ApiAuthMethod> AUTH_METHOD_VALUES = {AM_NO_AUTH,
+                                                 AM_EXTERNAL_AUTH,
+                                                 AM_CLIENT_CRED_AUTH,
+                                                 AM_DEVICE_FLOW,
+                                                 AM_BASIC_AUTH};
 
 std::map<ApiAuthMethod, std::string> AUTH_METHOD_TO_AUTH_NAME = {
     std::make_pair(AM_NO_AUTH, "No Auth"),
     std::make_pair(AM_EXTERNAL_AUTH, "External Auth"),
     std::make_pair(AM_CLIENT_CRED_AUTH, "OIDC Client Cred Auth"),
-    std::make_pair(AM_DEVICE_FLOW, "Device Flow")};
+    std::make_pair(AM_DEVICE_FLOW, "Device Flow"),
+    std::make_pair(AM_BASIC_AUTH, "Basic Auth")};
 
 std::map<std::string, ApiAuthMethod> AUTH_NAME_TO_AUTH_METHOD = {
     std::make_pair("No Auth", AM_NO_AUTH),
     std::make_pair("External Auth", AM_EXTERNAL_AUTH),
     std::make_pair("Oidc Client Cred Auth", AM_CLIENT_CRED_AUTH),
-    std::make_pair("Device Flow", AM_DEVICE_FLOW)};
+    std::make_pair("Device Flow", AM_DEVICE_FLOW),
+    std::make_pair("Basic Auth", AM_BASIC_AUTH)};
 
 
 // All default values - do not miss any!
@@ -56,6 +64,8 @@ std::map<std::string, std::string> DRIVER_CONFIG_DEFAULT_VALUES = {
     std::make_pair("clientId", ""),
     std::make_pair("clientSecret", ""),
     std::make_pair("oidcScope", ""),
+    std::make_pair("username", ""),
+    std::make_pair("password", ""),
     std::make_pair("secretEncryptionLevel", "user"),
 };
 
@@ -159,6 +169,20 @@ void DriverConfig::setOidcScope(std::string oidcScope) {
   this->oidcScope = oidcScope;
 }
 
+// Username / password (Basic Auth)
+std::string DriverConfig::getUsername() {
+  return this->username;
+}
+void DriverConfig::setUsername(std::string username) {
+  this->username = username;
+}
+std::string DriverConfig::getPassword() {
+  return this->password;
+}
+void DriverConfig::setPassword(std::string password) {
+  this->password = password;
+}
+
 std::string DriverConfig::getTokenEndpoint() {
   return this->tokenEndpoint;
 }
@@ -239,6 +263,21 @@ DriverConfig driverConfigFromKVPs(std::map<std::string, std::string> kvps) {
   if (kvps.count("tokenendpoint")) {
     config.setTokenEndpoint(kvps.at("tokenendpoint"));
   }
+  // UID and PWD are the standard ODBC connection string keys, so they
+  // override the DSN's username and password. Empty values do not, because
+  // some clients send "UID=;PWD=" when they have no credentials to add.
+  if (kvps.count("username")) {
+    config.setUsername(kvps.at("username"));
+  }
+  if (kvps.count("uid") and !kvps.at("uid").empty()) {
+    config.setUsername(kvps.at("uid"));
+  }
+  if (kvps.count("password")) {
+    config.setPassword(kvps.at("password"));
+  }
+  if (kvps.count("pwd") and !kvps.at("pwd").empty()) {
+    config.setPassword(kvps.at("pwd"));
+  }
 
   return config;
 }
@@ -276,6 +315,12 @@ std::map<std::string, std::string> driverConfigToKVPs(DriverConfig config) {
   }
   if (!config.getOidcScope().empty()) {
     kvps["oidcScope"] = config.getOidcScope();
+  }
+  if (!config.getUsername().empty()) {
+    kvps["username"] = config.getUsername();
+  }
+  if (!config.getPassword().empty()) {
+    kvps["password"] = config.getPassword();
   }
 
   return kvps;

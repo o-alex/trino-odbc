@@ -20,6 +20,24 @@ HWND editMaker(HWND form, int vertOffset, int editId, bool visible) {
                       NULL);
 }
 
+HWND passwordEditMaker(HWND form, int vertOffset, int editId, bool visible) {
+  DWORD visibleStyle = visible ? WS_VISIBLE : 0;
+  // ES_PASSWORD has no effect on ES_MULTILINE edits, so this control is
+  // single-line, unlike the ones from editMaker.
+  return CreateWindow("EDIT",
+                      "",
+                      visibleStyle | WS_CHILD | WS_BORDER | WS_TABSTOP |
+                          ES_PASSWORD | ES_AUTOHSCROLL,
+                      165,
+                      vertOffset,
+                      425,
+                      20,
+                      form,
+                      reinterpret_cast<HMENU>(static_cast<UINT_PTR>(editId)),
+                      GetModuleHandle(NULL),
+                      NULL);
+}
+
 std::string getEditText(HWND edit) {
   char currentText[1024];
   GetWindowText(edit, currentText, sizeof(currentText));

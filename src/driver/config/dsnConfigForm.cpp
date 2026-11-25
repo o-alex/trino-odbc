@@ -25,6 +25,8 @@ constexpr int ID_STATIC_OIDC_DISC     = 112;
 constexpr int ID_STATIC_CLIENT_ID     = 113;
 constexpr int ID_STATIC_CLIENT_SECRET = 114;
 constexpr int ID_STATIC_OIDC_SCOPE    = 115;
+constexpr int ID_EDIT_USERNAME        = 116;
+constexpr int ID_EDIT_PASSWORD        = 117;
 constexpr int BUF_LEN                 = 1024;
 
 
@@ -60,6 +62,12 @@ DSNForm::DSNForm(HWND parent, std::map<std::string, std::string> attributes) {
   if (attributes.count("oidcScope") > 0) {
     this->configResult.setOidcScope(attributes.at("oidcScope"));
   }
+  if (attributes.count("username") > 0) {
+    this->configResult.setUsername(attributes.at("username"));
+  }
+  if (attributes.count("password") > 0) {
+    this->configResult.setPassword(attributes.at("password"));
+  }
 }
 
 
@@ -94,6 +102,8 @@ LRESULT CALLBACK WINDOW_CB(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
       HWND clientSecretLabel     = GetDlgItem(hwnd, ID_STATIC_CLIENT_SECRET);
       HWND oidcScopeItem         = GetDlgItem(hwnd, ID_EDIT_OIDC_SCOPE);
       HWND oidcScopeLabel        = GetDlgItem(hwnd, ID_STATIC_OIDC_SCOPE);
+      HWND usernameItem          = GetDlgItem(hwnd, ID_EDIT_USERNAME);
+      HWND passwordItem          = GetDlgItem(hwnd, ID_EDIT_PASSWORD);
       char buf[BUF_LEN]          = {0};
       switch (LOWORD(wParam)) {
         case ID_BUTTON_SAVE: {
@@ -137,6 +147,19 @@ LRESULT CALLBACK WINDOW_CB(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
           GetWindowText(oidcScopeItem, buf, BUF_LEN);
           driverConfigPtr->setOidcScope(std::string(buf));
 
+          // Username and password are only kept for Basic Auth, so that
+          // switching a DSN away from it does not leave a stored password.
+          if (driverConfigPtr->getAuthMethodEnum() == AM_BASIC_AUTH) {
+            GetWindowText(usernameItem, buf, BUF_LEN);
+            driverConfigPtr->setUsername(std::string(buf));
+            GetWindowText(passwordItem, buf, BUF_LEN);
+            driverConfigPtr->setPassword(std::string(buf));
+          } else {
+            driverConfigPtr->setUsername("");
+            driverConfigPtr->setPassword("");
+          }
+          SecureZeroMemory(buf, BUF_LEN);
+
           driverConfigPtr->setIsSaved(true);
 
           DestroyWindow(hwnd);
@@ -154,6 +177,13 @@ LRESULT CALLBACK WINDOW_CB(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
           LRESULT authIndex = SendMessage(authMethodItem, CB_GETCURSEL, 0, 0);
           SendMessage(authMethodItem, CB_GETLBTEXT, authIndex, (LPARAM)buf);
           std::string authMethod = stringFromChar(buf, CHAR_IS_NTS);
+          if (authMethod == "Basic Auth") {
+            setEditWriteable(usernameItem);
+            setEditWriteable(passwordItem);
+          } else if (not authMethod.empty()) {
+            setEditReadOnly(usernameItem);
+            setEditReadOnly(passwordItem);
+          }
           if (authMethod == "OIDC Client Cred Auth") {
             WriteLog(LL_TRACE, "  Client Cred Auth");
             // Show the OIDC Config fields
@@ -229,17 +259,17 @@ void DSNForm::ShowDSNForm() {
 
   WriteLog(LL_TRACE, "  Creating window");
   HWND form    = CreateWindowEx(WS_EX_CLIENTEDGE,
-                             className,
-                             "Enter DSN Information",
-                             WS_OVERLAPPED | WS_VISIBLE,
-                             CW_USEDEFAULT,
-                             CW_USEDEFAULT,
-                             625,
-                             400,
-                             this->parent,
-                             NULL,
-                             GetModuleHandle(NULL),
-                             &this->configResult);
+                                className,
+                                "Enter DSN Information",
+                                WS_OVERLAPPED | WS_VISIBLE,
+                                CW_USEDEFAULT,
+                                CW_USEDEFAULT,
+                                625,
+                                450,
+                                this->parent,
+                                NULL,
+                                GetModuleHandle(NULL),
+                                &this->configResult);
   bool visible = true;
   // FEATURE: actually hide the OIDC fields if the user doesn't select OIDC
   // auth. For now, they're just disabled but still visible.
@@ -255,6 +285,8 @@ void DSNForm::ShowDSNForm() {
   labelMaker(form, 190, ID_STATIC_CLIENT_ID, "Client ID:", oidcVis);
   labelMaker(form, 220, ID_STATIC_CLIENT_SECRET, "Client Secret:", oidcVis);
   labelMaker(form, 250, ID_STATIC_OIDC_SCOPE, "OIDC Scope:", oidcVis);
+  labelMaker(form, 280, NULL, "Username:", visible);
+  labelMaker(form, 310, NULL, "Password:", visible);
 
   WriteLog(LL_TRACE, "  Creating Text Entries");
   HWND hwndDsn              = editMaker(form, 10, ID_EDIT_DSN, visible);
@@ -264,6 +296,8 @@ void DSNForm::ShowDSNForm() {
   HWND hwndClientId         = editMaker(form, 190, ID_EDIT_CLIENT_ID, oidcVis);
   HWND hwndClientSecret = editMaker(form, 220, ID_EDIT_CLIENT_SECRET, oidcVis);
   HWND hwndOidcScope    = editMaker(form, 250, ID_EDIT_OIDC_SCOPE, oidcVis);
+  HWND hwndUsername     = editMaker(form, 280, ID_EDIT_USERNAME, visible);
+  HWND hwndPassword = passwordEditMaker(form, 310, ID_EDIT_PASSWORD, visible);
 
   // Sometimes the DSN should be read-only such as when an existing DSN is being
   // configured. In those cases, we need to set the EDIT control to readonly as
@@ -288,14 +322,16 @@ void DSNForm::ShowDSNForm() {
   setEditText(hwndClientId, this->configResult.getClientId());
   setEditText(hwndClientSecret, this->configResult.getClientSecret());
   setEditText(hwndOidcScope, this->configResult.getOidcScope());
+  setEditText(hwndUsername, this->configResult.getUsername());
+  setEditText(hwndPassword, this->configResult.getPassword());
 
   WriteLog(LL_TRACE, "  Pre-poplating Comboboxes");
   setCombobox(hwndLogLevel, this->configResult.getLogLevelStr());
   setCombobox(hwndAuthMethod, this->configResult.getAuthMethodStr());
 
   WriteLog(LL_TRACE, "  Creating Buttons");
-  HWND hwndSave   = buttonMaker(form, 160, ID_BUTTON_SAVE, "Save");
-  HWND hwndCancel = buttonMaker(form, 260, ID_BUTTON_CANCEL, "Cancel");
+  HWND hwndSave   = buttonMaker(form, 160, 350, ID_BUTTON_SAVE, "Save");
+  HWND hwndCancel = buttonMaker(form, 260, 350, ID_BUTTON_CANCEL, "Cancel");
 
   MSG msg = {};
   WriteLog(LL_TRACE, "  Polling...");

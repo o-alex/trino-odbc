@@ -2,6 +2,7 @@
 
 HWND buttonMaker(HWND form,
                  int horizOffset,
+                 int vertOffset,
                  int buttonId,
                  std::string buttonText) {
   // Include WS_TABSTOP to enable tab navigation to buttons.
@@ -9,7 +10,7 @@ HWND buttonMaker(HWND form,
                       buttonText.c_str(),
                       WS_VISIBLE | WS_CHILD | WS_TABSTOP,
                       horizOffset,
-                      300,
+                      vertOffset,
                       80,
                       30,
                       form,

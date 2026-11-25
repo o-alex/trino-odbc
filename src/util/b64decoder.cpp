@@ -41,3 +41,29 @@ std::string fromBase64url(const std::string& input) {
   }
   return std::string(reinterpret_cast<char*>(decodedData.data()), requiredSize);
 }
+
+std::string stringToBase64(const std::string& data) {
+  if (data.empty()) {
+    return "";
+  }
+  const BYTE* bytes = reinterpret_cast<const BYTE*>(data.data());
+  DWORD dataSize    = static_cast<DWORD>(data.size());
+  DWORD flags       = CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF;
+  // The sizing call counts the terminating null; the encoding call then
+  // overwrites requiredSize with the length excluding it.
+  DWORD requiredSize = 0;
+  if (!CryptBinaryToStringA(bytes, dataSize, flags, NULL, &requiredSize)) {
+    std::string errorMessage = "Error calculating base64 encoding size";
+    WriteLog(LL_ERROR, errorMessage);
+    throw std::runtime_error(errorMessage);
+  }
+  std::string encoded(requiredSize, '\0');
+  if (!CryptBinaryToStringA(
+          bytes, dataSize, flags, encoded.data(), &requiredSize)) {
+    std::string errorMessage = "Error encoding to base64";
+    WriteLog(LL_ERROR, errorMessage);
+    throw std::runtime_error(errorMessage);
+  }
+  encoded.resize(requiredSize);
+  return encoded;
+}
